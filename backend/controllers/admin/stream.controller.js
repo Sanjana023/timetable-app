@@ -12,7 +12,7 @@ export const createStream = async (req, res) => {
 
 export const getStreams = async (req, res) => {
   try {
-    const streams = await Stream.find();
+    const streams = await Stream.find().populate('program');
     res.json(streams);
   } catch (error) {
     res.status(500).json({ message: error.message });
