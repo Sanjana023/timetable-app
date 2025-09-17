@@ -4,7 +4,6 @@ import Navbar from '@/layouts/Navbar';
 import Sidebar from '@/layouts/Sidebar';
 import Topbar from '@/layouts/Topbar';
 
-// Import your pages
 //import Universities from '@/pages/Universities';
 import Programs from '@/pages/programPage';
 import Streams from '@/pages/streamPage';

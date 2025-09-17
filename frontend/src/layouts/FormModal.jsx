@@ -1,122 +1,96 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import axios from 'axios';
-// const url=import.meta.env.BASE_URL
-export default function FormModal({ model, data, onClose, refresh }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    university: '',
-  });
-  const [universities, setUniversities] = useState([]);
-  const [loading, setLoading] = useState(false);
+import { useForm } from "react-hook-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,  
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-  // Populate form data if editing
-  useEffect(() => {
-    if (data) {
-      setFormData({
-        name: data.name || '',
-        university: data.university?._id || '',
-      });
-    } else {
-      setFormData({ name: '', university: '' });
-    }
-  }, [data]);
+export default function FormModal({
+  open,
+  onClose,
+  title,
+  fields = [],  
+  defaultValues = {},
+  onSubmit,
+}) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({ defaultValues });
 
-  // Fetch universities safely
-  useEffect(() => {
-    const fetchUniversities = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/v1/university/getUni`);
-       
-        console.log(res);
-        
-       setUniversities(res.data||[])
-      } catch (err) {
-        console.error('Failed to fetch universities:', err);
-        setUniversities([]);
-      }
-    };
-    fetchUniversities();
-  }, []);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleClose = () => {
+    reset();
+    onClose();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      if (data?._id) {
-        // Edit existing
-        console.log(data._id);
-        
-        await axios.put(`${import.meta.env.VITE_BASE_URL}/api/v1/programs/${data._id}`, formData);
-        
-        
-      } else {
-        // Add new
-        await axios.post(`${import.meta.env.VITE_BASE_URL}/api/v1/programs/createProgram`, formData);
-      }
-      refresh(); // refresh table
-      onClose(); // close modal
-    } catch (err) {
-      console.error('Failed to submit form:', err);
-    } finally {
-      setLoading(false);
-    }
+  const submitHandler = (data) => {
+    onSubmit(data);
+    handleClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-96 p-6">
-        <h2 className="text-xl font-bold mb-4">
-          {data ? 'Edit Program' : 'Add Program'}
-        </h2>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            Fill the form below and save your changes.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Name */}
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Program Name"
-            className="w-full p-2 border rounded"
-            required
-          />
+        <form onSubmit={handleSubmit(submitHandler)} className="space-y-4">
+          {fields.map((field) => (
+            <div key={field.name} className="flex flex-col">
+              <label className="mb-1 text-sm font-medium">{field.label}</label>
 
-          {/* University Dropdown */}
-          <select
-            name="university"
-            value={formData.university}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required
-          >
-            <option value="">Select University</option>
-            {Array.isArray(universities) && universities.length > 0 ? (
-              universities.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.name}
-                </option>
-              ))
-            ) : (
-              <option disabled>No universities available</option>
-            )}
-          </select>
+              {field.type === "number" && (
+                <Input
+                  type="number"
+                  {...register(field.name, { required: `${field.label} is required` })}
+                />
+              )}
 
-          {/* Buttons */}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+              {field.type === "text" && (
+                <Input
+                  type="text"
+                  {...register(field.name, { required: `${field.label} is required` })}
+                />
+              )}
+
+              {field.type === "select" && (
+                <select
+                  className="border rounded px-2 py-2"
+                  {...register(field.name, { required: `${field.label} is required` })}
+                >
+                  <option value="">Select {field.label}</option>
+                  {field.options?.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {errors[field.name] && (
+                <span className="text-red-500 text-xs">{errors[field.name].message}</span>
+              )}
+            </div>
+          ))}
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" type="button" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save'}
-            </Button>
+            <Button type="submit">Save</Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
